@@ -108,4 +108,11 @@ public class SupplierRankingRepository {
                         + factory.getSamplingTime()
                         + factory.getCertificationCount()));
     }
+
+    public static void calculateRelativeCloseness(Factory factory) {
+        factory.setRelativeCloseness(
+                factory.getAverageOfParametersWithWeightage() /
+                        (factory.getAverageOfParametersWithWeightage() + factory.getAverageOfParameters())
+        );
+    }
 }

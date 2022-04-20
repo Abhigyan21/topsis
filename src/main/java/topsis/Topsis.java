@@ -8,11 +8,14 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import topsis.models.Factory;
 import topsis.models.ParameterWeightage;
 import topsis.repository.SupplierRankingRepository;
 import topsis.service.SupplierRankingService;
@@ -23,21 +26,29 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
-public class Topsis implements RequestHandler<S3Event, String> {
+public class Topsis implements RequestHandler<String, String> {
 
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final Logger logger = LoggerFactory.getLogger(Topsis.class);
 
     @Override
-    public String handleRequest(S3Event s3Event, Context context) {
-        logger.info("EVENT: " + gson.toJson(s3Event));
-        S3EventNotification.S3EventNotificationRecord record = s3Event.getRecords().get(0);
+    public String handleRequest(String data, Context context) {
+        ObjectMapper mapper = new ObjectMapper();
+        ParameterWeightage parameterWeightage = null;
+        Gson jsonMapper = new GsonBuilder().create();
 
-        String srcBucket = record.getS3().getBucket().getName();
+        try {
+            parameterWeightage = mapper.readValue(jsonMapper.toJson(data), ParameterWeightage.class);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to process json data. Exception - " + e.getMessage());
+        }
 
-        // Object key may have spaces or unicode non-ASCII characters.
-        String srcKey = record.getS3().getObject().getUrlDecodedKey();
+        logger.info("EVENT: " + gson.toJson(data));
+
+        String srcBucket = "topsis";
+        String srcKey = "input.xlsx";
 
         AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion("ap-south-1").build();
         S3Object s3Object = s3Client.getObject(new GetObjectRequest(
@@ -50,15 +61,8 @@ public class Topsis implements RequestHandler<S3Event, String> {
 
             logger.info("File Copied successfully. FileName: " + path);
 
-            ParameterWeightage parameterWeightage = new ParameterWeightage();
-            parameterWeightage.setAcceptanceQualityLevelWeightage(0.3);
-            parameterWeightage.setAvgResponseTimeWeightage(0.2);
-            parameterWeightage.setSampleAcceptanceRateWeightage(0.3);
-            parameterWeightage.setSamplingTimeWeightage(0.1);
-            parameterWeightage.setCertificationCountWeightage(0.1);
-
-            SupplierRankingService service = new SupplierRankingService(path, parameterWeightage);
-
+            SupplierRankingService service = new SupplierRankingService("/tmp/" + srcKey, parameterWeightage);
+            return jsonMapper.toJson(service.generateSupplierRanking());
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InvalidFormatException e) {

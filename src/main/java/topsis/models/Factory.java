@@ -1,17 +1,19 @@
 package topsis.models;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
-@Data
+@Getter
+@Setter
 @Builder
+@ToString
 public class Factory {
     private String factoryName;
-    private Double acceptanceQualityLevel;
-    private Double avgResponseTime;
-    private Double sampleAcceptanceRate;
-    private Double samplingTime;
-    private Double certificationCount;
-    private Double averageOfParameters;
-    private Double averageOfParametersWithWeightage;
+    private double acceptanceQualityLevel;
+    private double avgResponseTime;
+    private double sampleAcceptanceRate;
+    private double samplingTime;
+    private double certificationCount;
+    private double averageOfParameters;
+    private double averageOfParametersWithWeightage;
+    private double relativeCloseness;
 }

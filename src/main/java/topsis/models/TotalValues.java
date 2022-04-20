@@ -1,8 +1,10 @@
 package topsis.models;
 
 import lombok.Data;
+import lombok.ToString;
 
 @Data
+@ToString
 public class TotalValues {
     private Double totalAcceptanceQualityLevel;
     private Double sqrtAcceptanceQualityLevel;

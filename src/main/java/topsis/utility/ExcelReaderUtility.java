@@ -26,9 +26,10 @@ public class ExcelReaderUtility {
 
 
         int rowCount = 1;
-        while (iterator.hasNext()) {
+        while (iterator.hasNext() && rowCount < 80) {
             //Skip header rows
-            if(rowCount < 2){
+            if(rowCount < 4){
+                iterator.next();
                 ++rowCount;
                 continue;
             }
@@ -36,40 +37,41 @@ public class ExcelReaderUtility {
             //Iterate through cells in each row and build the factory list
             Row currentRow = iterator.next();
             Iterator<Cell> cellIterator = currentRow.iterator();
-            int cellCount = 1;
-            while (cellIterator.hasNext()) {
-                Cell currentCell = cellIterator.next();
+            int cellCount = 0;
+            while (cellIterator.hasNext()  && cellCount <= 5) {
+                if(cellCount == 0){
+                    factoryBuilder.factoryName(cellIterator.next().getStringCellValue());
+                    ++cellCount;
+                }
+
                 if(cellCount == 1){
-                    factoryBuilder.factoryName(currentCell.getStringCellValue());
+                    factoryBuilder.acceptanceQualityLevel(cellIterator.next().getNumericCellValue());
                     ++cellCount;
                 }
 
                 if(cellCount == 2){
-                    factoryBuilder.acceptanceQualityLevel(currentCell.getNumericCellValue());
+                    factoryBuilder.avgResponseTime(cellIterator.next().getNumericCellValue());
                     ++cellCount;
                 }
 
                 if(cellCount == 3){
-                    factoryBuilder.avgResponseTime(currentCell.getNumericCellValue());
+                    factoryBuilder.sampleAcceptanceRate(cellIterator.next().getNumericCellValue());
                     ++cellCount;
                 }
 
                 if(cellCount == 4){
-                    factoryBuilder.sampleAcceptanceRate(currentCell.getNumericCellValue());
+                    factoryBuilder.samplingTime(cellIterator.next().getNumericCellValue());
                     ++cellCount;
                 }
 
                 if(cellCount == 5){
-                    factoryBuilder.samplingTime(currentCell.getNumericCellValue());
+                    factoryBuilder.certificationCount(cellIterator.next().getNumericCellValue());
                     ++cellCount;
-                }
-
-                if(cellCount == 6){
-                    factoryBuilder.certificationCount(currentCell.getNumericCellValue());
                 }
             }
 
             factoryList.add(factoryBuilder.build());
+            ++rowCount;
         }
 
         fileInputStream.close();
