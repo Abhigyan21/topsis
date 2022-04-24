@@ -80,8 +80,8 @@ public class Topsis implements RequestHandler<Object, String> {
 
             String response = "{" +
                     "\"isBase64Encoded\":false," +
-                    "\"statusCode\": 200" +
-                    "\"headers\": {\"Access-Control-Allow-Origin\":\"*\"}" +
+                    "\"statusCode\": 200," +
+                    "\"headers\": {\"Access-Control-Allow-Origin\":\"*\"}," +
                     "\"body\":" +
                     jsonMapper.toJson(responseData) +
                     "}";
