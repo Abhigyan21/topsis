@@ -1,6 +1,9 @@
 package topsis.service;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import topsis.Topsis;
 import topsis.models.Factory;
 import topsis.models.ParameterWeightage;
 import topsis.models.SolutionValues;
@@ -18,6 +21,8 @@ import java.util.stream.Collectors;
 
 public class SupplierRankingService {
 
+    private static final Logger logger = LoggerFactory.getLogger(SupplierRankingService.class);
+
     private List<Factory> factoryList;
     private ParameterWeightage parameterWeightage;
 
@@ -25,9 +30,13 @@ public class SupplierRankingService {
     public SupplierRankingService(String excelFilePath, ParameterWeightage parameterWeightage) throws IOException, InvalidFormatException {
         this.factoryList = ExcelReaderUtility.readExcelFile(new File(excelFilePath));
         this.parameterWeightage = parameterWeightage;
+
+        logger.info("Initialized SupplierRankingService");
     }
 
     public List<Factory> generateSupplierRanking() {
+        logger.info("Starting rank generation");
+
         factoryList.stream().forEach(SupplierRankingRepository::squareParameterWithSelfValue);
 
         TotalValues totalValues = SupplierRankingRepository.generateTotalValues(factoryList);
@@ -42,6 +51,8 @@ public class SupplierRankingService {
         factoryList.stream().forEach(factory -> SupplierRankingRepository.subtractParameterFromWeightageAndSquare(factory, parameterWeightage));
         factoryList.stream().forEach(SupplierRankingRepository::calculateAverageNegativeIdealSolutionForFactoryParameters);
         factoryList.stream().forEach(SupplierRankingRepository::calculateRelativeCloseness);
+
+        logger.info("Rank generation complete");
 
         return factoryList.stream().sorted(Comparator
                 .comparing(Factory::getRelativeCloseness, Comparator.reverseOrder()))

@@ -3,6 +3,8 @@ package topsis.utility;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import topsis.models.Factory;
 
 import java.io.File;
@@ -14,9 +16,13 @@ import java.util.List;
 
 public class ExcelReaderUtility {
 
+    private static final Logger logger = LoggerFactory.getLogger(ExcelReaderUtility.class);
+
     private static List<Factory> factoryList = new ArrayList<>();
 
     public static List<Factory> readExcelFile(File excelFile) throws IOException, InvalidFormatException {
+        logger.info("Starting excel file read");
+
         FileInputStream fileInputStream = new FileInputStream(excelFile);
         Workbook workbook = new XSSFWorkbook(excelFile);
 
@@ -75,6 +81,9 @@ public class ExcelReaderUtility {
         }
 
         fileInputStream.close();
+
+        logger.info("Total rows read: " + factoryList.size());
+        logger.info("Excel file read complete");
 
         return factoryList;
     }

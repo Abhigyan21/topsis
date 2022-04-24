@@ -2,8 +2,6 @@ package topsis;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.services.lambda.runtime.events.S3Event;
-import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -15,9 +13,8 @@ import com.google.gson.GsonBuilder;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import topsis.models.Factory;
 import topsis.models.ParameterWeightage;
-import topsis.repository.SupplierRankingRepository;
+import topsis.models.ResponseData;
 import topsis.service.SupplierRankingService;
 
 import java.io.IOException;
@@ -26,26 +23,35 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-public class Topsis implements RequestHandler<String, String> {
+public class Topsis implements RequestHandler<Object, String> {
 
-    Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final Logger logger = LoggerFactory.getLogger(Topsis.class);
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     @Override
-    public String handleRequest(String data, Context context) {
+    public String handleRequest(Object data, Context context) {
         ObjectMapper mapper = new ObjectMapper();
         ParameterWeightage parameterWeightage = null;
         Gson jsonMapper = new GsonBuilder().create();
+        String inputData = "";
+
+        if (data instanceof String) {
+            inputData = (String) data;
+        } else if (data instanceof Map) {
+            inputData = gson.toJson(data);
+        }
+
+        logger.info("EVENT: " + inputData);
 
         try {
-            parameterWeightage = mapper.readValue(jsonMapper.toJson(data), ParameterWeightage.class);
+            parameterWeightage = mapper.readValue(inputData, ParameterWeightage.class);
         } catch (JsonProcessingException e) {
             logger.error("Failed to process json data. Exception - " + e.getMessage());
         }
-
-        logger.info("EVENT: " + gson.toJson(data));
 
         String srcBucket = "topsis";
         String srcKey = "input.xlsx";
@@ -62,11 +68,27 @@ public class Topsis implements RequestHandler<String, String> {
             logger.info("File Copied successfully. FileName: " + path);
 
             SupplierRankingService service = new SupplierRankingService("/tmp/" + srcKey, parameterWeightage);
-            return jsonMapper.toJson(service.generateSupplierRanking());
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InvalidFormatException e) {
-            e.printStackTrace();
+            List<ResponseData> responseData = new ArrayList<>();
+
+            service.generateSupplierRanking().stream().forEach(
+                    factory -> responseData.add(ResponseData.builder()
+                    .factoryName(factory.getFactoryName())
+                    .relativeCloseness(factory.getRelativeCloseness())
+                    .build()));
+
+            logger.info("Lambda Processing Completed Successfully!!!");
+
+            String response = "{" +
+                    "\"isBase64Encoded\":false," +
+                    "\"statusCode\": 200" +
+                    "\"headers\": {\"Access-Control-Allow-Origin\":\"*\"}" +
+                    "\"body\":" +
+                    jsonMapper.toJson(responseData) +
+                    "}";
+
+            return response;
+        } catch (IOException | InvalidFormatException e) {
+            logger.error("Exception occurred while processing lambda: " + e.getMessage());
         }
 
         return "Lambda Processing Completed Successfully!!!";
